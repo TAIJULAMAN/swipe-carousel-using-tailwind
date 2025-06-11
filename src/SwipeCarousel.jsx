@@ -24,53 +24,55 @@ const SPRING_OPTIONS = {
 
 const SwipeCarousel = () => {
   const [imgIndex, setImgIndex] = useState(0);
-
   const dragX = useMotionValue(0);
+  const containerRef = React.useRef(null);
+  const [containerWidth, setContainerWidth] = React.useState(0);
 
+  // Set up resize observer to handle container width changes
+  React.useEffect(() => {
+    const updateWidth = () => {
+      if (containerRef.current) {
+        setContainerWidth(containerRef.current.offsetWidth);
+      }
+    };
+    
+    updateWidth();
+    window.addEventListener('resize', updateWidth);
+    return () => window.removeEventListener('resize', updateWidth);
+  }, []);
+
+  // Auto-advance slides
   useEffect(() => {
     const intervalRef = setInterval(() => {
-      const x = dragX.get();
-
-      if (x === 0) {
-        setImgIndex((pv) => {
-          if (pv === imgs.length - 1) {
-            return 0;
-          }
-          return pv + 1;
-        });
-      }
+      setImgIndex((pv) => (pv === imgs.length - 1 ? 0 : pv + 1));
     }, AUTO_DELAY);
 
     return () => clearInterval(intervalRef);
   }, []);
 
-  const onDragEnd = () => {
-    const x = dragX.get();
-
-    if (x <= -DRAG_BUFFER && imgIndex < imgs.length - 1) {
-      setImgIndex((pv) => pv + 1);
-    } else if (x >= DRAG_BUFFER && imgIndex > 0) {
-      setImgIndex((pv) => pv - 1);
+  const onDragEnd = (e, { offset, velocity }) => {
+    const swipe = Math.abs(offset.x) * velocity.x;
+    
+    if (swipe < -10000) {
+      // Swipe left
+      setImgIndex((prev) => (prev === imgs.length - 1 ? 0 : prev + 1));
+    } else if (swipe > 10000) {
+      // Swipe right
+      setImgIndex((prev) => (prev === 0 ? imgs.length - 1 : prev - 1));
     }
   };
 
   return (
-    <div className="relative overflow-hidden bg-neutral-950 py-8">
+    <div className="relative overflow-hidden bg-neutral-950 py-8 w-[2000px] mx-auto" ref={containerRef}>
       <motion.div
         drag="x"
-        dragConstraints={{
-          left: 0,
-          right: 0,
-        }}
-        style={{
-          x: dragX,
-        }}
+        dragConstraints={{ left: 0, right: 0 }}
+        onDragEnd={onDragEnd}
         animate={{
           translateX: `-${imgIndex * 100}%`,
         }}
         transition={SPRING_OPTIONS}
-        onDragEnd={onDragEnd}
-        className="flex cursor-grab items-center active:cursor-grabbing"
+        className="flex cursor-grab items-center active:cursor-grabbing w-full"
       >
         <Images imgIndex={imgIndex} />
       </motion.div>
@@ -84,29 +86,26 @@ const SwipeCarousel = () => {
 const Images = ({ imgIndex }) => {
   return (
     <>
-      {imgs.map((imgSrc, idx) => {
-        return (
-          <motion.div
-            key={idx}
-            style={{
-              backgroundImage: `url(${imgSrc})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              backgroundRepeat: 'no-repeat',
-              width: '100vw',
-              height: '60vh',
-              minHeight: '400px',
-              flex: '0 0 auto',
-            }}
-            animate={{
-              scale: imgIndex === idx ? 0.95 : 0.85,
-              opacity: imgIndex === idx ? 1 : 0.7,
-            }}
-            transition={SPRING_OPTIONS}
-            className="rounded-xl mx-2"
-          />
-        );
-      })}
+      {imgs.map((imgSrc, idx) => (
+        <motion.div
+          key={idx}
+          style={{
+            backgroundImage: `url(${imgSrc})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+            width: '10vw',
+            height: '500px',
+            flex: '0 0 100%',
+          }}
+          animate={{
+            scale: imgIndex === idx ? 1 : 0.95,
+            opacity: imgIndex === idx ? 1 : 0.7,
+          }}
+          transition={SPRING_OPTIONS}
+          className="mx-0"
+        />
+      ))}
     </>
   );
 };
@@ -114,17 +113,15 @@ const Images = ({ imgIndex }) => {
 const Dots = ({ imgIndex, setImgIndex }) => {
   return (
     <div className="mt-4 flex w-full justify-center gap-2">
-      {imgs.map((_, idx) => {
-        return (
-          <button
-            key={idx}
-            onClick={() => setImgIndex(idx)}
-            className={`h-3 w-3 rounded-full transition-colors ${
-              idx === imgIndex ? "bg-red-500" : "bg-green-500"
-            }`}
-          />
-        );
-      })}
+      {imgs.map((_, idx) => (
+        <button
+          key={idx}
+          onClick={() => setImgIndex(idx)}
+          className={`h-3 w-3 rounded-full transition-colors ${
+            idx === imgIndex ? "bg-red-500" : "bg-green-500"
+          }`}
+        />
+      ))}
     </div>
   );
 };
