@@ -1,9 +1,11 @@
 import React from 'react';
-
+import { SwipeCarousel } from './SwipeCarousel';
 function App() {
   return (
-    <div className="w-full">
-      <h1 className="text-3xl font-bold text-center">Hello World</h1>
+    <div className="w-full flex items-center justify-center ">
+      <div className="max-w-[800px]">
+        <SwipeCarousel />
+      </div>
     </div>
   );
 }
